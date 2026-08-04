@@ -1,0 +1,19 @@
+# Build artifacts
+build*/
+core.*
+
+# Job output directories (per-run diagnostic data)
+aix_diagnostics_*/
+aix_p2p_timeline_*/
+scorep_aix_*/
+timeline_smoke/
+
+# Job output files
+*.out
+
+# Per-run CSV data (individual runs)
+aix_p2p_steps_*.csv
+smoke_*.csv
+
+# Score-P profiling output
+scorep-*/

@@ -17,3 +17,7 @@ smoke_*.csv
 
 # Score-P profiling output
 scorep-*/
+
+# Python cache
+__pycache__/
+*.pyc

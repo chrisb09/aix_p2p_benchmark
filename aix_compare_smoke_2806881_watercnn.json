@@ -1,0 +1,28 @@
+{
+  "reference_model": "watercnn_cuda.pt",
+  "candidate_model": "watercnn_cuda.pt",
+  "shape": [
+    2,
+    25,
+    10416
+  ],
+  "total_elements": 520800,
+  "exact_bitwise_match": false,
+  "bitwise_mismatch_count": 520573,
+  "bitwise_mismatch_fraction": 0.9995641321044547,
+  "first_bitwise_mismatch_index": [
+    0,
+    0,
+    0
+  ],
+  "non_finite_mismatch_count": 0,
+  "tolerance_failure_count": 0,
+  "tolerance_failure_fraction": 0.0,
+  "atol": 0.001,
+  "rtol": 0.001,
+  "max_absolute_error": 0.0004049539566040039,
+  "mean_absolute_error": 9.184294632749028e-05,
+  "rms_error": 0.00011485689136823615,
+  "max_relative_error": 43.2800851970181,
+  "passed": true
+}

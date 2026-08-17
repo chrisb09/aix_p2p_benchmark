@@ -74,7 +74,7 @@ benchmark_args=(
     --batch-size "${AIX_P2P_BATCH_SIZE:-4000000}"
     --warmup-steps "${AIX_P2P_WARMUP_STEPS:-1}"
     --measured-steps "${AIX_P2P_MEASURED_STEPS:-10}"
-    --output "$SLURM_SUBMIT_DIR/aix_p2p_steps_het_${AIX_COMMUNICATION_MODE}_${SLURM_JOB_ID}.csv"
+    --output "${AIX_P2P_OUTPUT:-$SLURM_SUBMIT_DIR/aix_p2p_steps_het_${AIX_COMMUNICATION_MODE}_${SLURM_JOB_ID}.csv}"
 )
 
 srun --het-group=0 --ntasks=24 --cpus-per-task=1 --cpu-bind=cores --export=ALL,LD_LIBRARY_PATH="$cpu_node_ld_library_path" \

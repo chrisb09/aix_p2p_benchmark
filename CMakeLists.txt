@@ -17,7 +17,7 @@ find_library(AIXELERATOR_LIBRARY
 add_executable(aix_p2p_benchmark main.cpp)
 target_compile_features(aix_p2p_benchmark PRIVATE cxx_std_17)
 target_include_directories(aix_p2p_benchmark PRIVATE "${AIXELERATOR_INSTALL_PREFIX}/include")
-target_link_libraries(aix_p2p_benchmark PRIVATE MPI::MPI_CXX "${AIXELERATOR_LIBRARY}")
+target_link_libraries(aix_p2p_benchmark PRIVATE MPI::MPI_CXX "${AIXELERATOR_LIBRARY}" ${CMAKE_DL_LIBS})
 set_target_properties(aix_p2p_benchmark PROPERTIES
     BUILD_RPATH "${AIXELERATOR_INSTALL_PREFIX}/lib"
     INSTALL_RPATH "${AIXELERATOR_INSTALL_PREFIX}/lib")

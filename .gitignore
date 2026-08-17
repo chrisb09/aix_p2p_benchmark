@@ -17,6 +17,12 @@ smoke_*.csv
 
 # Score-P profiling output
 scorep-*/
+scorep_*/
+
+# Raw benchmark tensor outputs and locks
+aix_output_*
+*.lock
+*.pdf_err.log
 
 # Python cache
 __pycache__/

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=aix-p2p-het-24p24-210k
+#SBATCH --job-name=aix-p2p-1gpu-trans-scorep
 #SBATCH --account=thes2181
-#SBATCH --time=00:20:00
-#SBATCH --output=aix-p2p-het-24plus24-210k-%j.out
+#SBATCH --time=00:30:00
+#SBATCH --output=aix-p2p-1gpu-trans-scorep-%j.out
 
 # Component 0: 24 solver ranks on a CPU-only node (c23mm)
 #SBATCH --partition=c23mm
@@ -11,13 +11,13 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=5G
 
-# Component 1: 24 solver ranks on a GPU node (c23g) with 4 GPUs
+# Component 1: 1 GPU controller rank on a GPU node (c23g)
 #SBATCH hetjob
 #SBATCH --partition=c23g
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=24
-#SBATCH --cpus-per-task=1
-#SBATCH --gres=gpu:4
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=24
+#SBATCH --gres=gpu:1
 #SBATCH --mem-per-cpu=5G
 
 set -euo pipefail
@@ -25,6 +25,12 @@ set -euo pipefail
 benchmark_dir="${SLURM_SUBMIT_DIR:-$(realpath "$(dirname "$0")")}"
 root_dir="$(realpath "$benchmark_dir/..")"
 source "$root_dir/set_env_claix23_cuda12.4.sh"
+source "$root_dir/CPP-ML-Interface/env_scorep.sh"
+
+export SCOREP_ENABLE_PROFILING=true
+export SCOREP_ENABLE_TRACING=false
+export SCOREP_TOTAL_MEMORY=64M
+export SCOREP_OVERWRITE_EXPERIMENT_DIRECTORY=true
 
 cpu_node_ld_library_path="$CUDA_ROOT/targets/x86_64-linux/lib/stubs:${LD_LIBRARY_PATH:-}"
 gpu_node_ld_library_path=""
@@ -51,40 +57,36 @@ run_case() {
     export AIXELERATOR_INSTALL_PREFIX="$aix_prefix"
     export AIX_MEASURE_MEMORY=1
     export AIX_DIAGNOSTICS=1
-    export AIX_DIAGNOSTICS_DIR="$benchmark_dir/aix_diagnostics_het24_210k_${SLURM_JOB_ID}_${case_name}"
-    export AIX_P2P_TIMELINE_DIR="$benchmark_dir/aix_p2p_timeline_het24_210k_${SLURM_JOB_ID}_${case_name}"
+    export AIX_DIAGNOSTICS_DIR="$benchmark_dir/aix_diagnostics_1gpu_scorep_${SLURM_JOB_ID}_${case_name}"
+    export AIX_P2P_TIMELINE_DIR="$benchmark_dir/aix_p2p_timeline_1gpu_scorep_${SLURM_JOB_ID}_${case_name}"
+    export SCOREP_EXPERIMENT_DIRECTORY="$benchmark_dir/scorep_aix_1gpu_${SLURM_JOB_ID}_${case_name}"
     export AIX_P2P_RANGE_PIPELINE_DEPTH=3
     export AIX_P2P_INITIAL_CREDITS=1
 
-    echo "=== Running ${case_name} (24 CPU ranks + 24 GPU ranks, 4 GPUs, batch=${batch_size}) ==="
+    echo "=== Running ${case_name} with Score-P (24 CPU ranks + 1 GPU rank, 1 GPU, batch=${batch_size}) ==="
     srun --wait=60 --no-kill --het-group=0 --ntasks=24 --cpus-per-task=1 --cpu-bind=cores \
-        --export=ALL,LD_LIBRARY_PATH="$cpu_node_ld_library_path" \
+        --export=ALL,LD_LIBRARY_PATH="$cpu_node_ld_library_path",SCOREP_EXPERIMENT_DIRECTORY="$SCOREP_EXPERIMENT_DIRECTORY" \
         "$benchmark_binary" --model "$model_path" --samples-per-rank "$samples_per_rank" \
         --batch-size "$batch_size" --input-shape "$input_shape" --output-shape "$output_shape" \
         --warmup-steps 1 --measured-steps 10 --input-seed 42 \
-        --raw-output-prefix "$benchmark_dir/aix_output_het24_210k_${SLURM_JOB_ID}_${case_name}" \
-        --output "$benchmark_dir/aix_p2p_steps_het24_210k_${SLURM_JOB_ID}_${case_name}.csv" \
-        : --wait=60 --no-kill --het-group=1 --ntasks=24 --cpus-per-task=1 --cpu-bind=cores \
-        --export=ALL,LD_LIBRARY_PATH="$gpu_node_ld_library_path" \
+        --raw-output-prefix "$benchmark_dir/aix_output_1gpu_scorep_${SLURM_JOB_ID}_${case_name}" \
+        --output "$benchmark_dir/aix_p2p_steps_1gpu_scorep_${SLURM_JOB_ID}_${case_name}.csv" \
+        : --wait=60 --no-kill --het-group=1 --ntasks=1 --cpus-per-task=24 --cpu-bind=cores \
+        --export=ALL,LD_LIBRARY_PATH="$gpu_node_ld_library_path",SCOREP_EXPERIMENT_DIRECTORY="$SCOREP_EXPERIMENT_DIRECTORY" \
         "$benchmark_binary" --model "$model_path" --samples-per-rank "$samples_per_rank" \
         --batch-size "$batch_size" --input-shape "$input_shape" --output-shape "$output_shape" \
         --warmup-steps 1 --measured-steps 10 --input-seed 42 \
-        --raw-output-prefix "$benchmark_dir/aix_output_het24_210k_${SLURM_JOB_ID}_${case_name}" \
-        --output "$benchmark_dir/aix_p2p_steps_het24_210k_${SLURM_JOB_ID}_${case_name}.csv"
+        --raw-output-prefix "$benchmark_dir/aix_output_1gpu_scorep_${SLURM_JOB_ID}_${case_name}" \
+        --output "$benchmark_dir/aix_p2p_steps_1gpu_scorep_${SLURM_JOB_ID}_${case_name}.csv"
 
     echo "=== Rendering timeline for ${case_name} ==="
     python3 "$benchmark_dir/plot_p2p_timeline.py" "$AIX_P2P_TIMELINE_DIR"
 }
 
-collective_binary="$benchmark_dir/build-collective/aix_p2p_benchmark"
-pipelined_binary="$benchmark_dir/build-pipelined/aix_p2p_benchmark"
-collective_prefix="$root_dir/CPP-ML-Interface/extern/AIxeleratorService/INSTALL"
-pipelined_prefix="$root_dir/CPP-ML-Interface/extern/AIxeleratorService/INSTALL"
+scorep_binary="$benchmark_dir/build-scorep/aix_p2p_benchmark"
+scorep_prefix="$root_dir/CPP-ML-Interface/extern/AIxeleratorService/INSTALL-SCOREP"
 model_dir="$root_dir/mini_app/train_models/model_a"
 
-# WaterCNN and Perfect MLP, both modes, constrained batch size of 210k
-# so P2P range coalescing caps at ~2 WaterCNN ranks / 1 Perfect rank.
-run_case watercnn collective "$model_dir/watercnn_cuda.pt" 104160 210000 "104160,18" "104160" "$collective_binary" "$collective_prefix"
-run_case watercnn pipelined "$model_dir/watercnn_cuda.pt" 104160 210000 "104160,18" "104160" "$pipelined_binary" "$pipelined_prefix"
-run_case perfect collective "$model_dir/perfect_cuda.pt" 129600 210000 "129600,18" "129600" "$collective_binary" "$collective_prefix"
-run_case perfect pipelined "$model_dir/perfect_cuda.pt" 129600 210000 "129600,18" "129600" "$pipelined_binary" "$pipelined_prefix"
+# Run Transformer with Score-P in both collective and pipelined modes
+run_case transformer collective "$model_dir/transformer_cuda.pt" 104160 210000 "104160,18" "104160" "$scorep_binary" "$scorep_prefix"
+run_case transformer pipelined "$model_dir/transformer_cuda.pt" 104160 210000 "104160,18" "104160" "$scorep_binary" "$scorep_prefix"

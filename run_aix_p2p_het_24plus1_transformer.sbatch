@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=aix-p2p-het-24p24-210k
+#SBATCH --job-name=aix-p2p-het-24p1-trans
 #SBATCH --account=thes2181
 #SBATCH --time=00:20:00
-#SBATCH --output=aix-p2p-het-24plus24-210k-%j.out
+#SBATCH --output=aix-p2p-het-24plus1-transformer-%j.out
 
 # Component 0: 24 solver ranks on a CPU-only node (c23mm)
 #SBATCH --partition=c23mm
@@ -11,13 +11,13 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=5G
 
-# Component 1: 24 solver ranks on a GPU node (c23g) with 4 GPUs
+# Component 1: 1 GPU controller rank on a GPU node (c23g)
 #SBATCH hetjob
 #SBATCH --partition=c23g
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=24
-#SBATCH --cpus-per-task=1
-#SBATCH --gres=gpu:4
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=24
+#SBATCH --gres=gpu:1
 #SBATCH --mem-per-cpu=5G
 
 set -euo pipefail
@@ -51,26 +51,26 @@ run_case() {
     export AIXELERATOR_INSTALL_PREFIX="$aix_prefix"
     export AIX_MEASURE_MEMORY=1
     export AIX_DIAGNOSTICS=1
-    export AIX_DIAGNOSTICS_DIR="$benchmark_dir/aix_diagnostics_het24_210k_${SLURM_JOB_ID}_${case_name}"
-    export AIX_P2P_TIMELINE_DIR="$benchmark_dir/aix_p2p_timeline_het24_210k_${SLURM_JOB_ID}_${case_name}"
+    export AIX_DIAGNOSTICS_DIR="$benchmark_dir/aix_diagnostics_het24p1_transformer_${SLURM_JOB_ID}_${case_name}"
+    export AIX_P2P_TIMELINE_DIR="$benchmark_dir/aix_p2p_timeline_het24p1_transformer_${SLURM_JOB_ID}_${case_name}"
     export AIX_P2P_RANGE_PIPELINE_DEPTH=3
     export AIX_P2P_INITIAL_CREDITS=1
 
-    echo "=== Running ${case_name} (24 CPU ranks + 24 GPU ranks, 4 GPUs, batch=${batch_size}) ==="
+    echo "=== Running ${case_name} (24 CPU ranks + 1 GPU rank, 1 GPU, batch=${batch_size}) ==="
     srun --wait=60 --no-kill --het-group=0 --ntasks=24 --cpus-per-task=1 --cpu-bind=cores \
         --export=ALL,LD_LIBRARY_PATH="$cpu_node_ld_library_path" \
         "$benchmark_binary" --model "$model_path" --samples-per-rank "$samples_per_rank" \
         --batch-size "$batch_size" --input-shape "$input_shape" --output-shape "$output_shape" \
         --warmup-steps 1 --measured-steps 10 --input-seed 42 \
-        --raw-output-prefix "$benchmark_dir/aix_output_het24_210k_${SLURM_JOB_ID}_${case_name}" \
-        --output "$benchmark_dir/aix_p2p_steps_het24_210k_${SLURM_JOB_ID}_${case_name}.csv" \
-        : --wait=60 --no-kill --het-group=1 --ntasks=24 --cpus-per-task=1 --cpu-bind=cores \
+        --raw-output-prefix "$benchmark_dir/aix_output_het24p1_transformer_${SLURM_JOB_ID}_${case_name}" \
+        --output "$benchmark_dir/aix_p2p_steps_het24p1_transformer_${SLURM_JOB_ID}_${case_name}.csv" \
+        : --wait=60 --no-kill --het-group=1 --ntasks=1 --cpus-per-task=24 --cpu-bind=cores \
         --export=ALL,LD_LIBRARY_PATH="$gpu_node_ld_library_path" \
         "$benchmark_binary" --model "$model_path" --samples-per-rank "$samples_per_rank" \
         --batch-size "$batch_size" --input-shape "$input_shape" --output-shape "$output_shape" \
         --warmup-steps 1 --measured-steps 10 --input-seed 42 \
-        --raw-output-prefix "$benchmark_dir/aix_output_het24_210k_${SLURM_JOB_ID}_${case_name}" \
-        --output "$benchmark_dir/aix_p2p_steps_het24_210k_${SLURM_JOB_ID}_${case_name}.csv"
+        --raw-output-prefix "$benchmark_dir/aix_output_het24p1_transformer_${SLURM_JOB_ID}_${case_name}" \
+        --output "$benchmark_dir/aix_p2p_steps_het24p1_transformer_${SLURM_JOB_ID}_${case_name}.csv"
 
     echo "=== Rendering timeline for ${case_name} ==="
     python3 "$benchmark_dir/plot_p2p_timeline.py" "$AIX_P2P_TIMELINE_DIR"
@@ -82,9 +82,6 @@ collective_prefix="$root_dir/CPP-ML-Interface/extern/AIxeleratorService/INSTALL"
 pipelined_prefix="$root_dir/CPP-ML-Interface/extern/AIxeleratorService/INSTALL"
 model_dir="$root_dir/mini_app/train_models/model_a"
 
-# WaterCNN and Perfect MLP, both modes, constrained batch size of 210k
-# so P2P range coalescing caps at ~2 WaterCNN ranks / 1 Perfect rank.
-run_case watercnn collective "$model_dir/watercnn_cuda.pt" 104160 210000 "104160,18" "104160" "$collective_binary" "$collective_prefix"
-run_case watercnn pipelined "$model_dir/watercnn_cuda.pt" 104160 210000 "104160,18" "104160" "$pipelined_binary" "$pipelined_prefix"
-run_case perfect collective "$model_dir/perfect_cuda.pt" 129600 210000 "129600,18" "129600" "$collective_binary" "$collective_prefix"
-run_case perfect pipelined "$model_dir/perfect_cuda.pt" 129600 210000 "129600,18" "129600" "$pipelined_binary" "$pipelined_prefix"
+# Non-MMCP Transformer MLP (WaterTransformerMLP, [N,18] -> [N])
+run_case transformer collective "$model_dir/transformer_cuda.pt" 104160 210000 "104160,18" "104160" "$collective_binary" "$collective_prefix"
+run_case transformer pipelined "$model_dir/transformer_cuda.pt" 104160 210000 "104160,18" "104160" "$pipelined_binary" "$pipelined_prefix"

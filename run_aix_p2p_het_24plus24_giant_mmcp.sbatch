@@ -78,8 +78,8 @@ run_case() {
 
 collective_binary="$benchmark_dir/build-collective/aix_p2p_benchmark"
 pipelined_binary="$benchmark_dir/build-pipelined/aix_p2p_benchmark"
-collective_prefix="$root_dir/AIxeleratorService-p2p/INSTALL-BASELINE"
-pipelined_prefix="$root_dir/AIxeleratorService-pipelined/INSTALL-PIPELINED"
+collective_prefix="$root_dir/CPP-ML-Interface/extern/AIxeleratorService/INSTALL"
+pipelined_prefix="$root_dir/CPP-ML-Interface/extern/AIxeleratorService/INSTALL"
 model_dir="$root_dir/mini_app/train_models/model_a"
 mmcp_model="/rwthfs/rz/cluster/hpcwork/ro092286/MMCP_2026_Artifact_Hybrid_Inference/input/transformer_inference_scripted_fw2.pt"
 

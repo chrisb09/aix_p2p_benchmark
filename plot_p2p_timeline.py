@@ -175,6 +175,7 @@ def render_step(events, step, output_dir: Path, model_name: str):
     legend_candidates = [
         ("input_send_start", Patch(facecolor="#4c9ed9", label="worker input send -> controller-ready (incl. ack)")),
         ("input_credit_wait_start", Patch(facecolor="#f0c040", label="worker waits for input credit")),
+        ("result_wait_start", Patch(facecolor="#fde2b8", label="worker waits for output results")),
         ("result_send_start", Patch(facecolor="#f4a261", label="controller result-send -> worker output received")),
         ("range_inference_start", Patch(facecolor="#8e6bbd", label="selected ready-range inference")),
         ("controller_input_copy_start", Patch(facecolor="#6c757d", label="controller input-buffer copy")),
@@ -228,9 +229,18 @@ def render_step(events, step, output_dir: Path, model_name: str):
                 axis.broken_barh([(x_coordinate(send[0]), x_coordinate(send_comp[0]) - x_coordinate(send[0]))],
                                  (y_pos - 0.31, 0.27), facecolors="#4c9ed9", edgecolors="none")
 
+            # Result wait segment: worker blocked waiting for controller to compute and send results
+            res_wait = [e["time_s"] for e in r_events if e["event"] == "result_wait_start"]
+            if res_wait and res_send_start and res_send_start[0] >= res_wait[0]:
+                axis.broken_barh([(x_coordinate(res_wait[0]), x_coordinate(res_send_start[0]) - x_coordinate(res_wait[0]))],
+                                 (y_pos + 0.04, 0.27), facecolors="#fde2b8", edgecolors="none")
+
+            # Result send/receive segment (from controller result send to worker result receive)
             if res_send_start and res_recv and res_recv[-1] >= res_send_start[0]:
-                axis.broken_barh([(x_coordinate(res_send_start[0]), x_coordinate(res_recv[-1]) - x_coordinate(res_send_start[0]))],
-                                 (y_pos + 0.04, 0.27), facecolors="#f4a261", edgecolors="none")
+                bar_start = x_coordinate(res_send_start[0])
+                bar_width = max(0.04, x_coordinate(res_recv[-1]) - bar_start)
+                axis.broken_barh([(bar_start, bar_width)],
+                                 (y_pos + 0.04, 0.27), facecolors="#f4a261", edgecolors="#d97724", linewidth=0.8)
 
             # Per-rank solver entry marker (from the solver timeline): when this rank starts its ML step.
             for t in [e["time_s"] for e in step_events
@@ -242,6 +252,11 @@ def render_step(events, step, output_dir: Path, model_name: str):
             for t in [e["time_s"] for e in ctrl_events
                       if e["event"] == "input_credit_send" and e["peer_workgroup_rank"] == worker_wg_rank]:
                 axis.plot(x_coordinate(t), y_pos - 0.43, marker="v", color="#f0c040",
+                          markersize=6, zorder=6, clip_on=False)
+
+            # Controller result-send tick targeting this worker's workgroup rank.
+            for t in res_send_start:
+                axis.plot(x_coordinate(t), y_pos + 0.33, marker="v", color="#f4a261",
                           markersize=6, zorder=6, clip_on=False)
 
         # Draw controller lane events on controller's y_pos
@@ -356,6 +371,10 @@ def render_step(events, step, output_dir: Path, model_name: str):
         legend_handles.append(Line2D(
             [], [], color="#f0c040", marker="v", linestyle="None", markersize=6,
             label="controller sends input credit to this worker"))
+    if "result_send_start" in present_events:
+        legend_handles.append(Line2D(
+            [], [], color="#f4a261", marker="v", linestyle="None", markersize=6,
+            label="controller sends output results to this worker"))
 
     # Add Tier badges to legend
     legend_handles.extend([

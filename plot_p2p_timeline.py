@@ -97,10 +97,57 @@ def get_workgroup_mapping(events):
     return wg_map
 
 
+def synchronize_step_clocks(step_events, wg_map, latency_s: float = 3e-6):
+    """
+    Per-step clock synchronization aligning worker timestamps to their assigned controller's
+    timeline based on P2P causality:
+      t_worker_send_start = t_controller_credit_send + latency
+    """
+    controller_ranks = sorted({e["world_rank"] for e in step_events if e["is_controller"]})
+    if not controller_ranks:
+        return step_events
+
+    worker_to_ctrl = {}
+    for ctrl, workers in wg_map.items():
+        for w in workers:
+            if w != ctrl:
+                worker_to_ctrl[w] = ctrl
+
+    worker_deltas = {}
+    for w, ctrl in worker_to_ctrl.items():
+        ctrl_events = [e for e in step_events if e["world_rank"] == ctrl]
+        w_events = [e for e in step_events if e["world_rank"] == w]
+        w_wg_rank = next((e["workgroup_rank"] for e in w_events if e["workgroup_rank"] >= 0), -1)
+
+        c_credit = next((e["time_s"] for e in ctrl_events if e["event"] == "input_credit_send" and e["peer_workgroup_rank"] == w_wg_rank), None)
+        w_send = next((e["time_s"] for e in w_events if e["event"] == "input_send_start"), None)
+
+        if c_credit is not None and w_send is not None:
+            worker_deltas[w] = (w_send - c_credit) - latency_s
+        else:
+            c_res = next((e["time_s"] for e in ctrl_events if e["event"] == "result_send_start" and e["peer_workgroup_rank"] == w_wg_rank), None)
+            w_res = next((e["time_s"] for e in w_events if e["event"] == "result_received"), None)
+            if c_res is not None and w_res is not None:
+                worker_deltas[w] = (w_res - c_res) - latency_s
+
+    synchronized_events = []
+    for e in step_events:
+        e_copy = dict(e)
+        w = e_copy["world_rank"]
+        if w in worker_deltas:
+            e_copy["time_s"] -= worker_deltas[w]
+        synchronized_events.append(e_copy)
+
+    return synchronized_events
+
+
 def render_step(events, step, output_dir: Path, model_name: str):
     step_events = [event for event in events if event["step"] == step]
     if not step_events:
         return
+
+    wg_map = get_workgroup_mapping(step_events)
+    step_events = synchronize_step_clocks(step_events, wg_map)
 
     start = min(event["time_s"] for event in step_events)
 
@@ -112,8 +159,6 @@ def render_step(events, step, output_dir: Path, model_name: str):
     controller_ranks = sorted({e["world_rank"] for e in step_events if e["is_controller"]})
     if not controller_ranks:
         controller_ranks = [0]
-
-    wg_map = get_workgroup_mapping(step_events)
     min_gpu_rank = min(controller_ranks) if controller_ranks else 0
 
     num_wgs = len(controller_ranks)
@@ -331,6 +376,10 @@ def write_summary(events, output_dir: Path, selected_steps, model_name: str):
     rows = []
     for step in selected_steps:
         step_events = [event for event in events if event["step"] == step]
+        if not step_events:
+            continue
+        wg_map = get_workgroup_mapping(step_events)
+        step_events = synchronize_step_clocks(step_events, wg_map)
         starts = [e["time_s"] for e in step_events if e["event"] in ("solver_ml_step_start", "ml_step_start")]
         ends = [e["time_s"] for e in step_events if e["event"] in ("solver_ml_step_end", "ml_step_end")]
         ready = [e["time_s"] for e in step_events if e["event"] == "input_ready"]

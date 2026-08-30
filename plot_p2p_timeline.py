@@ -100,8 +100,14 @@ def get_workgroup_mapping(events):
 def synchronize_step_clocks(step_events, wg_map, latency_s: float = 3e-6):
     """
     Per-step clock synchronization aligning worker timestamps to their assigned controller's
-    timeline based on P2P causality:
-      t_worker_send_start = t_controller_credit_send + latency
+    timeline based on P2P causality.
+
+    Anchor pairs (in order of reliability):
+      1. worker `input_send_complete` == controller `input_ready` (both log message
+         completion; implicit wire latency ~0, immune to controller Isend queue delay)
+      2. worker `result_received` == controller `result_send_start` + latency
+      3. worker `input_send_start` == controller `input_credit_send` + latency
+         (unreliable: controller logs the Isend *posting*, which may be transmitted late)
     """
     controller_ranks = sorted({e["world_rank"] for e in step_events if e["is_controller"]})
     if not controller_ranks:
@@ -119,16 +125,30 @@ def synchronize_step_clocks(step_events, wg_map, latency_s: float = 3e-6):
         w_events = [e for e in step_events if e["world_rank"] == w]
         w_wg_rank = next((e["workgroup_rank"] for e in w_events if e["workgroup_rank"] >= 0), -1)
 
-        c_credit = next((e["time_s"] for e in ctrl_events if e["event"] == "input_credit_send" and e["peer_workgroup_rank"] == w_wg_rank), None)
-        w_send = next((e["time_s"] for e in w_events if e["event"] == "input_send_start"), None)
+        delta = None
 
-        if c_credit is not None and w_send is not None:
-            worker_deltas[w] = (w_send - c_credit) - latency_s
-        else:
+        # Anchor 1 (primary): input message completion on both sides.
+        w_comp = next((e["time_s"] for e in w_events if e["event"] == "input_send_complete"), None)
+        c_ready = next((e["time_s"] for e in ctrl_events if e["event"] == "input_ready" and e["peer_workgroup_rank"] == w_wg_rank), None)
+        if w_comp is not None and c_ready is not None:
+            delta = w_comp - c_ready
+
+        # Anchor 2: result transfer (includes real transfer latency).
+        if delta is None:
             c_res = next((e["time_s"] for e in ctrl_events if e["event"] == "result_send_start" and e["peer_workgroup_rank"] == w_wg_rank), None)
             w_res = next((e["time_s"] for e in w_events if e["event"] == "result_received"), None)
             if c_res is not None and w_res is not None:
-                worker_deltas[w] = (w_res - c_res) - latency_s
+                delta = (w_res - c_res) - latency_s
+
+        # Anchor 3 (fallback): credit posting vs worker send start.
+        if delta is None:
+            c_credit = next((e["time_s"] for e in ctrl_events if e["event"] == "input_credit_send" and e["peer_workgroup_rank"] == w_wg_rank), None)
+            w_send = next((e["time_s"] for e in w_events if e["event"] == "input_send_start"), None)
+            if c_credit is not None and w_send is not None:
+                delta = (w_send - c_credit) - latency_s
+
+        if delta is not None:
+            worker_deltas[w] = delta
 
     synchronized_events = []
     for e in step_events:

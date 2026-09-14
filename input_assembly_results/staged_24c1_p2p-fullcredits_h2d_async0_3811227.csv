@@ -1,0 +1,5 @@
+# mode=p2p_fullcredits,stage=h2d,world_size=24,group_size=24,workgroups=1,payload_bytes_per_rank=6220800,pipeline_depth=3,compute_repeats=128,async_controller=0,mpi_thread_level_provided=3
+mode,stage,async_controller,scenario_world_ranks,group_size,iteration,workgroup,input_ready_ms,stage_complete_ms,h2d_sum_ms,compute_sum_ms,d2h_sum_ms,scheduled_ranges
+p2p_fullcredits,h2d,0,24,24,0,0,22.726190,23.143760,2.957088,0.000000,0.000000,24.000000
+p2p_fullcredits,h2d,0,24,24,1,0,22.439955,22.862921,2.922336,0.000000,0.000000,24.000000
+p2p_fullcredits,h2d,0,24,24,2,0,22.277659,22.713792,2.910976,0.000000,0.000000,24.000000

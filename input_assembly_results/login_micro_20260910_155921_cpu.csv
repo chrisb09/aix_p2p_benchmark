@@ -1,0 +1,4 @@
+case,wall_s,usage_usec_delta,cores_avg,nr_throttled_delta,throttled_usec_delta
+a_real,8.096,31041830,3.834,64,25375928
+b_real,14.598,58273082,3.992,143,163832280
+b_mock,9.767,38976887,3.991,95,93720975

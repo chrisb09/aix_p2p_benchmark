@@ -1,0 +1,3 @@
+model,async_controller,mode,stage,samples,input_ready_median_ms,stage_complete_median_ms,submit_cpu_sum_median_ms,scheduled_ranges_median,submit_cpu_per_range_us
+/rwthfs/rz/cluster/hpcwork/ro092286/smartsim/mini_app/train_models/model_a/watercnn_cuda.pt,0,p2p_credit1,h2d_compute_d2h,100,4.189539,4.947361,3.389519,8.000000,423.689875
+mock,0,p2p_credit1,h2d_compute_d2h,100,2.927468,3.346112,0.121930,4.000000,30.482500

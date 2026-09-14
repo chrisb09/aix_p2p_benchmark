@@ -1,0 +1,5 @@
+# mode=collective_gatherv,stage=h2d_compute_d2h,world_size=24,group_size=24,workgroups=1,payload_bytes_per_rank=6220800,pipeline_depth=3,compute_repeats=128,async_controller=0,mpi_thread_level_provided=3
+mode,stage,async_controller,scenario_world_ranks,group_size,iteration,workgroup,input_ready_ms,stage_complete_ms,h2d_sum_ms,compute_sum_ms,d2h_sum_ms,scheduled_ranges
+collective_gatherv,h2d_compute_d2h,0,24,24,0,0,21.172912,24.282299,2.980096,0.302048,0.552160,24.000000
+collective_gatherv,h2d_compute_d2h,0,24,24,1,0,21.407531,24.520646,2.989120,0.300448,0.558048,24.000000
+collective_gatherv,h2d_compute_d2h,0,24,24,2,0,21.307405,24.422923,2.991520,0.298208,0.564704,24.000000

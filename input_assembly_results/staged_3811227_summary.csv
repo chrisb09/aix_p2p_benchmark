@@ -1,0 +1,13 @@
+scenario,async_controller,mode,stage,samples,input_ready_median_ms,stage_complete_median_ms
+24c1,0,collective_gatherv,pinned_mpi,3,21.307858,21.308680
+24c1,0,p2p_credit1,pinned_mpi,3,21.210665,21.210913
+24c1,0,p2p_fullcredits,pinned_mpi,3,21.445700,21.446041
+24c1,0,collective_gatherv,h2d,3,21.192327,24.179938
+24c1,0,p2p_credit1,h2d,3,21.953841,22.388080
+24c1,0,p2p_fullcredits,h2d,3,22.439955,22.862921
+24c1,0,collective_gatherv,h2d_compute,3,21.180394,24.123898
+24c1,0,p2p_credit1,h2d_compute,3,22.105166,22.514455
+24c1,0,p2p_fullcredits,h2d_compute,3,22.519536,22.927333
+24c1,0,collective_gatherv,h2d_compute_d2h,3,21.307405,24.422923
+24c1,0,p2p_credit1,h2d_compute_d2h,3,22.477161,22.886236
+24c1,0,p2p_fullcredits,h2d_compute_d2h,3,22.764009,23.171239

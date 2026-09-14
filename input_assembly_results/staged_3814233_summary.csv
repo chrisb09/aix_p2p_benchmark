@@ -1,0 +1,2 @@
+scenario,async_controller,mode,stage,samples,input_ready_median_ms,stage_complete_median_ms
+24c1,1,p2p_credit1,pinned_mpi,2,21.852616,21.865539

@@ -1,0 +1,5 @@
+# mode=p2p_credit1,stage=pinned_mpi,world_size=24,group_size=24,workgroups=1,payload_bytes_per_rank=6220800,pipeline_depth=3,compute_repeats=128,async_controller=0,mpi_thread_level_provided=3
+mode,stage,async_controller,scenario_world_ranks,group_size,iteration,workgroup,input_ready_ms,stage_complete_ms,h2d_sum_ms,compute_sum_ms,d2h_sum_ms,scheduled_ranges
+p2p_credit1,pinned_mpi,0,24,24,0,0,21.484518,21.484835,0.000000,0.000000,0.000000,0.000000
+p2p_credit1,pinned_mpi,0,24,24,1,0,21.210665,21.210913,0.000000,0.000000,0.000000,0.000000
+p2p_credit1,pinned_mpi,0,24,24,2,0,21.067650,21.067914,0.000000,0.000000,0.000000,0.000000

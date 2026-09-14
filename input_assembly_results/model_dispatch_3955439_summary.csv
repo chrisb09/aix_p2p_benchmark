@@ -1,0 +1,11 @@
+model,async_controller,mode,stage,samples,input_ready_median_ms,stage_complete_median_ms,submit_cpu_sum_median_ms,scheduled_ranges_median,submit_cpu_per_range_us
+/rwthfs/rz/cluster/hpcwork/ro092286/smartsim/mini_app/train_models/model_a/watercnn_cuda.pt,0,p2p_credit1,h2d,100,20.936968,21.337511,0.215861,24.000000,8.994188
+/rwthfs/rz/cluster/hpcwork/ro092286/smartsim/mini_app/train_models/model_a/watercnn_cuda.pt,0,p2p_credit1,h2d_compute_d2h,100,26.846711,28.544387,5.853413,24.000000,243.892208
+/rwthfs/rz/cluster/hpcwork/ro092286/smartsim/mini_app/train_models/model_a/watercnn_cuda.pt,0,p2p_fullcredits,h2d,100,21.567196,21.987944,0.191632,24.000000,7.984687
+/rwthfs/rz/cluster/hpcwork/ro092286/smartsim/mini_app/train_models/model_a/watercnn_cuda.pt,0,p2p_fullcredits,h2d_compute_d2h,100,29.203632,30.890823,5.560881,24.000000,231.703396
+mock,0,p2p_credit1,h2d,100,21.036393,21.434803,0.216875,24.000000,9.036458
+mock,0,p2p_credit1,h2d_compute_d2h,100,21.755578,22.409840,0.489315,24.000000,20.388125
+mock,0,p2p_credit1,pinned_mpi,100,19.969952,19.970209,0.000379,0.000000,nan
+mock,0,p2p_fullcredits,h2d,100,21.530417,21.944837,0.187742,24.000000,7.822563
+mock,0,p2p_fullcredits,h2d_compute_d2h,100,22.944935,23.601992,0.432985,24.000000,18.041042
+mock,0,p2p_fullcredits,pinned_mpi,100,20.534024,20.534424,0.000392,0.000000,nan

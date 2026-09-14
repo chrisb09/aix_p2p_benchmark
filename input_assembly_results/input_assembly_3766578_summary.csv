@@ -1,0 +1,7 @@
+scenario,mode,samples,critical_path_median_ms,critical_path_p05_ms,critical_path_p95_ms
+24c1,collective_gatherv,200,20.398148,20.254335,20.816271
+24c1,p2p_credit1,200,20.109090,19.865790,20.233845
+24c1,p2p_fullcredits,200,20.179403,19.903349,20.316013
+96c4,collective_gatherv,200,23.081499,22.605526,23.366511
+96c4,p2p_credit1,200,22.617099,22.163642,23.078542
+96c4,p2p_fullcredits,200,22.630921,22.158020,22.933571

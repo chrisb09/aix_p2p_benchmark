@@ -33,6 +33,33 @@ export AIX_COMMUNICATION_MODE=pipelined
 
 The root rank writes one CSV row per rank and measured step. `global_step_ms` is the maximum rank-local duration and represents the synchronous coupling-step completion time.
 
+## Pure MPI Input Assembly
+
+`aix_input_assembly_mpi` isolates only the input assembly portion of one AIx
+workgroup. It compares `MPI_Gatherv` with the production P2P protocol: receives
+are preposted, workers wait for input credits, then send their input and wait
+for an ACK that makes their buffer reusable. `p2p-credit1` starts with one
+credit and grants two more after each receive; `p2p-fullcredits` grants all 23
+workers immediately.
+
+`run_input_assembly_mpi.sbatch` runs all three modes in both intended
+topologies on one exclusive c23g node: one 24-rank workgroup (`24c1`) and four
+concurrent 24-rank workgroups (`96c4`). It uses the 6,220,800 B per-rank input
+payload of the 3840x2160 WaterCNN 96c4gpu mini-app run. The launcher writes
+raw per-controller CSVs plus a critical-path summary and plot; each 96c4
+iteration is reduced to its slowest controller, matching synchronous coupling
+step completion.
+
+`run_input_assembly_staged.sbatch` extends this exact fixture with CUDA-pinned
+controller buffers and the same three-stream dependency chain used by AIx:
+`pinned_mpi`, `h2d`, `h2d_compute`, and `h2d_compute_d2h`. P2P input progress
+runs in a dedicated `MPI_Testsome` thread while the controller thread submits
+received rank slices to a depth-three H2D, synthetic-compute, and D2H pipeline.
+This separates transport effects from MPI progress and GPU pipeline effects.
+The default synthetic compute is calibrated to approximately 12.5 ms per
+controller, matching the 50 ms summed WaterCNN forward time observed across
+the four controllers of the 96c4gpu run.
+
 `run_aix_p2p.sbatch` builds and launches the fixture on a four-GPU node. Select the baseline or P2P implementation through `AIXELERATOR_INSTALL_PREFIX`.
 
 `run_aix_p2p_het.sbatch` creates a heterogeneous allocation with 24 one-core solver ranks on `c23mm` and one 24-core GPU-controller/solver rank plus one GPU on `c23g`. This is 25 solver ranks in total; the 24 CPU-node ranks communicate with the remote controller.
